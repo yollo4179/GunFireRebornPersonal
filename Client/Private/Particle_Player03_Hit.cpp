@@ -1,0 +1,153 @@
+#include"stdafx.h"
+#include"Particle_Player03_Hit.h"
+#include"GameInstance.h"
+CParticle_Player03_Hit::CParticle_Player03_Hit(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
+	:CGameObject{pDevice, pContext}
+{
+}
+
+CParticle_Player03_Hit::CParticle_Player03_Hit(const CParticle_Player03_Hit& Prototype)
+	:CGameObject(Prototype)
+{
+}
+
+HRESULT CParticle_Player03_Hit::Initialize_Prototype()
+{
+	return S_OK;
+}
+
+HRESULT CParticle_Player03_Hit::Initialize(void* pArg)
+{
+	if (FAILED(__super::Initialize(pArg)))
+		return E_FAIL;
+
+	m_pTransformCom->Set_State(CTransform::STATE_RIGHT, XMVectorSet(1.f, 0.f, 0.f, 0.f));
+	m_pTransformCom->Set_State(CTransform::STATE_UP, XMVectorSet(0.f, 1.f, 0.f, 0.f));
+	m_pTransformCom->Set_State(CTransform::STATE_LOOK, XMVectorSet(0.f, 0.f, 1.f, 0.f));
+	m_pTransformCom->Set_State(CTransform::STATE_POSITION, XMVectorSet(0.f, 0.f, 0.f, 1.f));
+	if (FAILED(Ready_Components()))
+		return E_FAIL;
+
+
+	return S_OK;
+}
+
+void CParticle_Player03_Hit::Priority_Update(_float fTimeDelta)
+{
+	m_fAccTimeDelta += fTimeDelta*20.f;
+	if (m_fAccTimeDelta >= 15.f)
+		m_fAccTimeDelta = 0.f;
+}
+
+void CParticle_Player03_Hit::Update(_float fTimeDelta)
+{
+	m_pVIBufferCom->Spread(fTimeDelta);
+}
+
+void CParticle_Player03_Hit::Late_Update(_float fTimeDelta)
+{
+	m_pGameInstance->Add_RenderObject(CRenderer::RG_NONLIGHT, this);
+}
+
+HRESULT CParticle_Player03_Hit::Render()
+{
+	if (FAILED(Bind_ShaderResources()))
+		return E_FAIL;
+
+	m_pShaderCom->Begin(2);
+
+	m_pVIBufferCom->Bind_BufferDesc();
+
+	m_pVIBufferCom->Render();
+	return S_OK;
+}
+
+void CParticle_Player03_Hit::Set_Pivot(_float3 fPivot)
+{
+	m_pVIBufferCom->Set_Pivot(fPivot);
+}
+
+void CParticle_Player03_Hit::Set_Position(_fvector vPos)
+{
+	m_pTransformCom->Set_State(CTransform::STATE_POSITION, vPos);
+}
+
+void CParticle_Player03_Hit::Reset_Vertices(_float fTimeDelta)
+{
+	m_pVIBufferCom->Reset_Vertices_Random(fTimeDelta);
+}
+
+HRESULT CParticle_Player03_Hit::Ready_Components()
+{
+	/* Com_Shader */
+	if (FAILED(Add_Component(LEVEL_STATIC, TEXT("Prototype_Component_Shader_VtxPointInstance"),
+		TEXT("Com_Shader"), reinterpret_cast<CComponent**>(&m_pShaderCom))))
+		return E_FAIL;
+
+	/* Com_VIBuffer */
+	if (FAILED(Add_Component(LEVEL_STATIC, TEXT("Prototype_Component_VIBuffer_Particle_Player03_Hit"),
+		TEXT("Com_VIBuffer"), reinterpret_cast<CComponent**>(&m_pVIBufferCom))))
+		return E_FAIL;
+
+	/* Com_Texture */
+	if (FAILED(Add_Component(LEVEL_STATIC, TEXT("Prototype_Component_Texture_Particle_Player03_Hit"),
+		TEXT("Com_Texture"), reinterpret_cast<CComponent**>(&m_pTextureCom))))
+		return E_FAIL;
+
+	return S_OK;
+}
+
+HRESULT CParticle_Player03_Hit::Bind_ShaderResources()
+{
+	if (FAILED(m_pTransformCom->Bind_ShaderResource(m_pShaderCom, "g_WorldMatrix")))
+		return E_FAIL;
+
+	if (FAILED(m_pShaderCom->Bind_Matrix("g_ViewMatrix", &m_pGameInstance->Get_TransformFloat4x4(CPipeLine::D3DTS_VIEW))))
+		return E_FAIL;
+	if (FAILED(m_pShaderCom->Bind_Matrix("g_ProjMatrix", &m_pGameInstance->Get_TransformFloat4x4(CPipeLine::D3DTS_PROJ))))
+		return E_FAIL;
+
+	if (FAILED(m_pTextureCom->Bind_ShaderResource(m_pShaderCom, "g_Texture", ((int)m_fAccTimeDelta)%15)))
+		return E_FAIL;
+
+	if (FAILED(m_pShaderCom->Bind_RawValue("g_vCamPosition", m_pGameInstance->Get_CamPosition(), sizeof(_float4))))
+		return E_FAIL;
+
+	return S_OK;
+}
+
+CParticle_Player03_Hit* CParticle_Player03_Hit::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
+{
+	CParticle_Player03_Hit* pInstance = new   CParticle_Player03_Hit(pDevice, pContext);
+
+	if (FAILED(pInstance->Initialize_Prototype()))
+	{
+		MSG_BOX("Failed to Created :   CParticle_Player03_Hit");
+		Safe_Release(pInstance);
+	}
+
+	return pInstance;
+}
+
+CGameObject* CParticle_Player03_Hit::Clone(void* pArg)
+{
+	CParticle_Player03_Hit* pInstance = new   CParticle_Player03_Hit(*this);
+
+	if (FAILED(pInstance->Initialize(pArg)))
+	{
+		MSG_BOX("Failed to Cloned :   CParticle_Player03_Hit");
+		Safe_Release(pInstance);
+	}
+
+	return pInstance;
+}
+
+void CParticle_Player03_Hit::Free()
+{
+	__super::Free();
+
+
+	Safe_Release(m_pShaderCom);
+	Safe_Release(m_pTextureCom);
+	Safe_Release(m_pVIBufferCom);
+}

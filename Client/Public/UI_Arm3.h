@@ -1,0 +1,55 @@
+#pragma once
+#include"UIObject.h"
+#include"Client_Defines.h"
+
+BEGIN(Engine)
+class CShader;
+class CVIBuffer_Rect;
+class CTexture;
+END
+BEGIN(Client)
+class CUI_Arm3 final :public CUIObject
+{
+public:
+	typedef struct : public CUIObject::UIOBJECT_DESC
+	{
+		_uint* pNowEquipedArmIndex;
+	}UI_ARM3_DESC;
+private:
+	explicit CUI_Arm3(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
+	explicit CUI_Arm3(const CUI_Arm3& Prototype);
+	virtual ~CUI_Arm3() = default;
+
+public:
+	virtual HRESULT Initialize_Prototype() override;
+	virtual HRESULT Initialize(void* pArg) override;
+	virtual void Priority_Update(_float fTimeDelta) override;
+	virtual void Update(_float fTimeDelta) override;
+	virtual void Late_Update(_float fTimeDelta) override;
+	virtual HRESULT Render() override;
+
+
+
+
+
+private:
+	CShader* m_pShaderCom = { nullptr };
+	CTexture* m_pTextureCom = { nullptr };
+	CVIBuffer_Rect* m_pVIBufferCom = { nullptr };
+
+	_uint* m_pNowEquipedArmIndex = { nullptr };
+
+private:
+	HRESULT Ready_Components();
+	HRESULT Bind_ShaderResources();
+
+
+public:
+	static   CUI_Arm3* Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
+	virtual CGameObject* Clone(void* pArg);
+	virtual void Free() override;
+
+};
+END
+
+
